@@ -1,0 +1,8 @@
+{
+  "spec_files": [
+    "**/*[sS]pec.ts"
+  ],
+  "reporter": "jasmine-spec-reporter",
+  "stopSpecOnExpectationFailure": false,
+  "random": true
+}
