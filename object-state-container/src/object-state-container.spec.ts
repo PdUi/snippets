@@ -1,5 +1,7 @@
 import { ObjectStateContainer } from './object-state-container';
 import { TestScheduler } from 'rxjs/testing';
+import { merge } from 'rxjs';
+import { tap } from 'rxjs/operators';
 
 class TestObject {
     boolean: boolean;
@@ -23,30 +25,12 @@ describe('ObjectStateContainer', () => {
         })
     );
 
-    /*
-        SAME TEST AS ONE BELOW
-        This is a non-marble test example.
-    */
-    it('should be constructed with isDirty as false', done => {
-        const objectStateContainer = new ObjectStateContainer(new TestObject(), ['string', 'number', 'boolean']);
-        objectStateContainer
-            .$isDirty
-            .subscribe(isDirty => {
-                expect(isDirty).toBe(false);
-                done();
-            });
-    });
-
-    /*
-        SAME TEST AS ONE ABOVE
-        This is a 'marble' test example.
-    */
     it('should be constructed with isDirty as false', () => {
         scheduler.run(({ expectObservable }) => {
-            const objectStateContainer = new ObjectStateContainer(new TestObject(), ['string', 'number', 'boolean']);
-            const expectedMarble = 'd';
-            const expectedIsDirty = { d: false };
-            expectObservable(objectStateContainer.$isDirty).toBe(expectedMarble, expectedIsDirty);
+            const objectStateContainer = new ObjectStateContainer(new TestObject());
+            const expectedMarble = 'a';
+            const expectedIsDirty = { a: false };
+            expectObservable(objectStateContainer.isDirty$).toBe(expectedMarble, expectedIsDirty);
         });
     });
 
@@ -55,7 +39,7 @@ describe('ObjectStateContainer', () => {
             const objectStateContainer = new ObjectStateContainer(new TestObject({ boolean: true }), ['boolean']);
             const expectedMarble = 'd';
             const expectedIsDirty = { d: false };
-            expectObservable(objectStateContainer.$isDirty).toBe(expectedMarble, expectedIsDirty);
+            expectObservable(objectStateContainer.isDirty$).toBe(expectedMarble, expectedIsDirty);
             expect(objectStateContainer.t.boolean).toBe(true);
         });
     });
@@ -65,7 +49,7 @@ describe('ObjectStateContainer', () => {
             const objectStateContainer = new ObjectStateContainer(new TestObject({ number: Number.MAX_VALUE }), ['number']);
             const expectedMarble = 'd';
             const expectedIsDirty = { d: false };
-            expectObservable(objectStateContainer.$isDirty).toBe(expectedMarble, expectedIsDirty);
+            expectObservable(objectStateContainer.isDirty$).toBe(expectedMarble, expectedIsDirty);
             expect(objectStateContainer.t.number).toBe(Number.MAX_VALUE);
         });
     });
@@ -75,111 +59,167 @@ describe('ObjectStateContainer', () => {
             const objectStateContainer = new ObjectStateContainer(new TestObject({ string: 'string' }), ['string']);
             const expectedMarble = 'd';
             const expectedIsDirty = { d: false };
-            expectObservable(objectStateContainer.$isDirty).toBe(expectedMarble, expectedIsDirty);
+            expectObservable(objectStateContainer.isDirty$).toBe(expectedMarble, expectedIsDirty);
             expect(objectStateContainer.t.string).toBe('string');
         });
     });
 
     it('should change isDirty to true when testObject.boolean is updated', () => {
-        scheduler.run(({ expectObservable }) => {
-            const objectStateContainer = new ObjectStateContainer(new TestObject(), ['boolean']);
-            objectStateContainer.t.boolean = true;
-            const expectedMarble = 'd';
-            const expectedIsDirty = { d: true };
-            expectObservable(objectStateContainer.$isDirty).toBe(expectedMarble, expectedIsDirty);
+        scheduler.run(({ expectObservable, cold }) => {
+            const t1 = new TestObject();
+            const container = new ObjectStateContainer(t1, ['boolean']);
+
+            const makeDirty$ =  cold('----(b|)', { b: t1 }).pipe(tap(() => container.t.boolean = true));
+
+            const expected = 'a---b';
+            
+            const expectedEvents = '----(b|)';
+            const stateValues = { a: false, b: true };
+
+            expectObservable(makeDirty$).toBe(expectedEvents, { b: t1 });
+            expectObservable(container.isDirty$).toBe(expected, stateValues);
         });
     });
 
     it('should change isDirty to true when testObject.boolean is updated', () => {
-        scheduler.run(({ expectObservable }) => {
-            const objectStateContainer = new ObjectStateContainer(new TestObject({ boolean: false }), ['boolean']);
-            objectStateContainer.t.boolean = true;
-            const expectedMarble = 'd';
-            const expectedIsDirty = { d: true };
-            expectObservable(objectStateContainer.$isDirty).toBe(expectedMarble, expectedIsDirty);
+        scheduler.run(({ expectObservable, cold }) => {
+            const t1 = new TestObject({ boolean: false });
+            const container = new ObjectStateContainer(t1, ['boolean']);
+
+            const makeDirty$ =  cold('----(b|)', { b: t1 }).pipe(tap(() => container.t.boolean = true));
+
+            const expected = 'a---b';
+            
+            const expectedEvents = '----(b|)';
+            const stateValues = { a: false, b: true };
+
+            expectObservable(makeDirty$).toBe(expectedEvents, { b: t1 });
+            expectObservable(container.isDirty$).toBe(expected, stateValues);
         });
     });
 
     it('should change isDirty to true when testObject.number is updated', () => {
-        scheduler.run(({ expectObservable }) => {
-            const objectStateContainer = new ObjectStateContainer(new TestObject(), ['number']);
-            objectStateContainer.t.number = Number.MAX_VALUE;
-            const expectedMarble = 'd';
-            const expectedIsDirty = { d: true };
-            expectObservable(objectStateContainer.$isDirty).toBe(expectedMarble, expectedIsDirty);
+        scheduler.run(({ expectObservable, cold }) => {
+            const t1 = new TestObject();
+            const container = new ObjectStateContainer(t1, ['number']);
+
+            const makeDirty$ =  cold('----(b|)', { b: t1 }).pipe(tap(() => container.t.number = Number.MAX_VALUE));
+
+            const expected = 'a---b';
+            
+            const expectedEvents = '----(b|)';
+            const stateValues = { a: false, b: true };
+
+            expectObservable(makeDirty$).toBe(expectedEvents, { b: t1 });
+            expectObservable(container.isDirty$).toBe(expected, stateValues);
         });
     });
 
     it('should change isDirty to true when testObject.number is updated', () => {
-        scheduler.run(({ expectObservable }) => {
-            const objectStateContainer = new ObjectStateContainer(new TestObject({ number: Number.MIN_VALUE }), ['number']);
-            objectStateContainer.t.number = Number.MAX_VALUE;
-            const expectedMarble = 'd';
-            const expectedIsDirty = { d: true };
-            expectObservable(objectStateContainer.$isDirty).toBe(expectedMarble, expectedIsDirty);
+        scheduler.run(({ expectObservable, cold }) => {
+            const t1 = new TestObject({ number: Number.MIN_VALUE });
+            const container = new ObjectStateContainer(t1, ['number']);
+
+            const makeDirty$ =  cold('----(b|)', { b: t1 }).pipe(tap(() => container.t.number = Number.MAX_VALUE));
+
+            const expected = 'a---b';
+            
+            const expectedEvents = '----(b|)';
+            const stateValues = { a: false, b: true };
+
+            expectObservable(makeDirty$).toBe(expectedEvents, { b: t1 });
+            expectObservable(container.isDirty$).toBe(expected, stateValues);
         });
     });
 
     it('should change isDirty to true when testObject.string is updated', () => {
-        scheduler.run(({ expectObservable }) => {
-            const objectStateContainer = new ObjectStateContainer(new TestObject(), ['string']);
-            objectStateContainer.t.string = 'string';
-            const expectedMarble = 'd';
-            const expectedIsDirty = { d: true };
-            expectObservable(objectStateContainer.$isDirty).toBe(expectedMarble, expectedIsDirty);
+        scheduler.run(({ expectObservable, cold }) => {
+            const t1 = new TestObject();
+            const container = new ObjectStateContainer(t1, ['string']);
+
+            const makeDirty$ =  cold('----(b|)', { b: t1 }).pipe(tap(() => container.t.string = 'string'));
+
+            const expected = 'a---b';
+            
+            const expectedEvents = '----(b|)';
+            const stateValues = { a: false, b: true };
+
+            expectObservable(makeDirty$).toBe(expectedEvents, { b: t1 });
+            expectObservable(container.isDirty$).toBe(expected, stateValues);
         });
     });
 
     it('should change isDirty to true when testObject.string is updated', () => {
-        scheduler.run(({ expectObservable }) => {
-            const objectStateContainer = new ObjectStateContainer(new TestObject({ string: 'strng' }), ['string']);
-            objectStateContainer.t.string = 'string';
-            const expectedMarble = 'd';
-            const expectedIsDirty = { d: true };
-            expectObservable(objectStateContainer.$isDirty).toBe(expectedMarble, expectedIsDirty);
+        scheduler.run(({ expectObservable, cold }) => {
+            const t1 = new TestObject({ string: 'strng' });
+            const container = new ObjectStateContainer(t1, ['string']);
+
+            const makeDirty$ =  cold('----(b|)', { b: t1 }).pipe(tap(() => container.t.string = 'string'));
+
+            const expected = 'a---b';
+            
+            const expectedEvents = '----(b|)';
+            const stateValues = { a: false, b: true };
+
+            expectObservable(makeDirty$).toBe(expectedEvents, { b: t1 });
+            expectObservable(container.isDirty$).toBe(expected, stateValues);
         });
     });
 
     it('should change isDirty to false when testObject changes are undone', () => {
-        scheduler.run(({ expectObservable }) => {
-            const objectStateContainer = new ObjectStateContainer(new TestObject(), ['string', 'number', 'boolean']);
-            objectStateContainer.t.string = 'string';
-            objectStateContainer.undoChanges();
+        scheduler.run(({ expectObservable, cold }) => {
+            const t1 = new TestObject();
+            const container = new ObjectStateContainer(t1, ['string']);
 
-            const expectedMarble = 'd';
-            const expectedIsDirty = { d: false };
-            expectObservable(objectStateContainer.$isDirty).toBe(expectedMarble, expectedIsDirty);
+            const makeDirty$ =  cold('----(b|)', { b: t1 }).pipe(tap(() => container.t.string = 'string'));
+            const undoChange$ = cold('----------(c|)', { c: t1 }).pipe(tap(() => container.undoChanges()));
+
+            const expected = 'a---b-----c';
+            const stateValues = { a: false, b: true, c: false };
+            
+            const events$ = merge(makeDirty$, undoChange$);
+            const expectedEvents = '----b-----(c|)';
+
+            expectObservable(events$).toBe(expectedEvents, { b: t1, c: t1 });
+            expectObservable(container.isDirty$).toBe(expected, stateValues);
         });
     });
 
     it('should change isDirty to false when object reference is updated but property values remain the same', () => {
-        scheduler.run(({ expectObservable }) => {
-            const objectStateContainer = new ObjectStateContainer(new TestObject(), ['string', 'number', 'boolean']);
-            objectStateContainer.t = new TestObject();
-            const expectedMarble = 'd';
-            const expectedIsDirty = { d: false };
-            expectObservable(objectStateContainer.$isDirty).toBe(expectedMarble, expectedIsDirty);
+        scheduler.run(({ expectObservable, cold }) => {
+            const t1 = new TestObject();
+            const t2 = new TestObject();
+            const container = new ObjectStateContainer(t1);
+
+            const makeDirty$ =  cold('----(b|)', { b: t2 }).pipe(tap(t => container.t = t));
+
+            const expected = 'a---b';
+            
+            const expectedEvents = '  ----(b|)';
+            const stateValues = { a: false, b: false };
+
+            expectObservable(makeDirty$).toBe(expectedEvents, { b: t2 });
+            expectObservable(container.isDirty$).toBe(expected, stateValues);
         });
     });
 
     it('should change isDirty to true when object reference is updated and property change', () => {
-        scheduler.run(({ expectObservable }) => {
-            const objectStateContainer = new ObjectStateContainer(new TestObject(), ['string', 'number', 'boolean']);
-            objectStateContainer.t = new TestObject({ string: 'string' });
-            const expectedMarble = 'd';
-            const expectedIsDirty = { d: true };
-            expectObservable(objectStateContainer.$isDirty).toBe(expectedMarble, expectedIsDirty);
-        });
-    });
+        scheduler.run(({ expectObservable, cold }) => {
+            const t1 = new TestObject();
+            const t2 = new TestObject();
+            const container = new ObjectStateContainer(t1, ['string']);
 
-    it('should change isDirty to true when object reference is updated and then property value is changed on new object reference', () => {
-        scheduler.run(({ expectObservable }) => {
-            const objectStateContainer = new ObjectStateContainer(new TestObject(), ['string', 'number', 'boolean']);
-            objectStateContainer.t = new TestObject();
-            objectStateContainer.t.string = 'string';
-            const expectedMarble = 'd';
-            const expectedIsDirty = { d: true };
-            expectObservable(objectStateContainer.$isDirty).toBe(expectedMarble, expectedIsDirty);
+            const makeDirty$ =  cold('-(b|)', { b: t2 }).pipe(tap(() => container.t = t2));
+            const changePropertyValue$ =  cold('--(c|)', { c: t2 }).pipe(tap(() => container.t.string = 'string'));
+            
+            const expected = 'abc';
+            const stateValues = { a: false, b: false, c: true };
+            
+            const events$ = merge(makeDirty$, changePropertyValue$);
+            const expectedEvents = '-b(c|)';
+
+            expectObservable(events$).toBe(expectedEvents, { b: t2, c: t2 });
+            expectObservable(container.isDirty$).toBe(expected, stateValues);
         });
     });
 });

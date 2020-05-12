@@ -1,35 +1,54 @@
 import { BehaviorSubject } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 
 export class ObjectStateContainer<T> {
+    private pristineStateT: T;
+    private __t: T;
+
     private currentStateSubject = new BehaviorSubject<T>(undefined);
-    private $currentState = this.currentStateSubject.asObservable();
+    private currentState$ = this.currentStateSubject
+                                .asObservable();
 
-    public $isDirty = this.$currentState.pipe(map(t => this.isDirty(t)));
+    public get t(): T {
+        return this.__t;
+    }
 
-    constructor(public t: T, private propertiesToWatch: (keyof T)[]) {
+    public set t(t: T) {
+        this.propertiesToWatch
+            .forEach(key => this.setWatch(t, key, (o, _) => this.currentStateSubject.next(o)));
+
+        this.currentStateSubject.next(t);
+
+        this.__t = t;
+    }
+
+    public isDirty$ = this.currentState$
+                          .pipe(
+                              map(t => this.isDirty(t))
+                          );
+
+    constructor(t: T, private propertiesToWatch: (keyof T)[] = []) {
         this.updateT(t);
+        this.__t = t;
     }
 
     undoChanges() {
-        this.updateT(this.t);
-        this.setWatch(this, 't', (obj, _) => this.updateT(obj.t));
+        this.updateT(this.pristineStateT);
     }
 
     private isDirty(t: T): boolean {
         return !!this.t
             && !!t
             && this.propertiesToWatch
-                    .reduce((pv, cv) => pv || this.t[cv] !== t[cv], false);
+                    .reduce((pv, cv) => pv || this.pristineStateT[cv] !== t[cv], false);
     }
 
     private updateT(t: T) {
-        const tCopy = this.shallowClone(t);
-
         this.propertiesToWatch
-            .forEach(key => this.setWatch(tCopy, key, (cmd, _) => this.currentStateSubject.next(cmd)));
+            .forEach(key => this.setWatch(t, key, (o, _) => this.currentStateSubject.next(o)));
 
-        this.currentStateSubject.next(tCopy);
+        this.currentStateSubject.next(t);
+        this.pristineStateT = this.shallowClone(t);
     }
 
     private setWatch<T>(obj: T, key: keyof T, callback: (obj: T, val: any) => void) {
