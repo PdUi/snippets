@@ -1,0 +1,19 @@
+{
+    "name": "pd-web-components",
+    "version": "0.0.1",
+    "scripts": {
+        "clean": "rimraf dist playground/js",
+        "copy:to:playground": "copyfiles -u 1 dist/*.js playground/js",
+        "prebuild": "clean",
+        "build": "tsc",
+        "postbuild": "copy:to:playground",
+        "serve": "http-server ./playground -c-1"
+    },
+    "author": "Pinary Development LLC",
+    "devDependencies": {
+        "copyfiles": "^2.3.0",
+        "http-server": "^0.12.3",
+        "rimraf": "^3.0.2",
+        "typescript": "^4.0.3"
+    }
+}
